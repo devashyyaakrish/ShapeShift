@@ -1,10 +1,9 @@
-# TransformX: Interactive 2D & 3D Transformation Visualizer
-
-**Backend & Core Engine** - Production-quality transformation mathematics and state management system.
+# ShapeShift
+ShapeShift: An interactive 2D & 3D transformation visualizer. This project provides a hands-on experience with geometric transformations, allowing users to apply and see the effects of translation, rotation, scaling, and more in real-time.
 
 ## Overview
 
-TransformX is a sophisticated computational geometry engine that provides complete 2D and 3D transformation capabilities using matrix mathematics. This backend/core module handles all mathematical operations, state management, animation, and transformation history.
+ShapeShift is a sophisticated computational geometry engine that provides complete 2D and 3D transformation capabilities using matrix mathematics. This backend/core module handles all mathematical operations, state management, animation, and transformation history.
 
 **Version:** 1.0.0  
 **Status:** Production Ready
@@ -590,3 +589,6 @@ TransformX Development Team
 
 **Version:** 1.0.0  
 **Last Updated:** 2025-05-01
+=======
+# ShapeShift
+>>>>>>> 1a3c9672cd9958902f342bfbc777df5259b050ec
