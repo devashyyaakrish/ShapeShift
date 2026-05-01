@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShapeShift — Advanced Transformation Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg-deep: #060d1a;
+  --bg-base: #0f172a;
+  --bg-surface: #111827;
+  --bg-elevated: #1a2236;
+  --glass: rgba(255,255,255,0.04);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-hover: rgba(255,255,255,0.07);
+
+  --cyan: #00f5ff;
+  --cyan-dim: #00c4cc;
+  --purple: #a855f7;
+  --pink: #ec4899;
+  --green: #10b981;
+  --yellow: #f59e0b;
+
+  --grad-primary: linear-gradient(135deg, var(--cyan), var(--purple));
+  --grad-accent: linear-gradient(135deg, var(--purple), var(--pink));
+  --grad-warm: linear-gradient(135deg, var(--pink), var(--yellow));
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --sidebar-w: 280px;
+  --info-w: 300px;
+  --header-h: 60px;
+  --footer-h: 40px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --shadow-glow-cyan: 0 0 20px rgba(0,245,255,0.25);
+  --shadow-glow-purple: 0 0 20px rgba(168,85,247,0.25);
+  --shadow-glow-pink: 0 0 20px rgba(236,72,153,0.25);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-display);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   LOADER
+   ============================================================ */
+#loader {
+  position: fixed; inset: 0;
+  background: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 28px;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+#loader.hidden { opacity: 0; visibility: hidden; }
+
+.loader-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: pulse-text 2s ease-in-out infinite;
+}
+
+.cube-scene {
+  width: 80px; height: 80px;
+  perspective: 300px;
+}
+.cube {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cube-spin 2.5s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+}
+.cube-face {
+  position: absolute; width: 80px; height: 80px;
+  border: 1px solid rgba(0,245,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+}
+.cube-face:nth-child(1) { background: rgba(0,245,255,0.06); transform: rotateY(0deg) translateZ(40px); }
+.cube-face:nth-child(2) { background: rgba(168,85,247,0.06); transform: rotateY(90deg) translateZ(40px); }
+.cube-face:nth-child(3) { background: rgba(236,72,153,0.06); transform: rotateY(180deg) translateZ(40px); }
+.cube-face:nth-child(4) { background: rgba(0,245,255,0.06); transform: rotateY(-90deg) translateZ(40px); }
+.cube-face:nth-child(5) { background: rgba(168,85,247,0.06); transform: rotateX(90deg) translateZ(40px); }
+.cube-face:nth-child(6) { background: rgba(236,72,153,0.06); transform: rotateX(-90deg) translateZ(40px); }
+
+.cube-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 3px; width: 56px; height: 56px;
+}
+.cube-cell {
+  background: rgba(0,245,255,0.15);
+  border-radius: 2px;
+  animation: cell-pulse 1.2s ease-in-out infinite;
+}
+.cube-cell:nth-child(1) { animation-delay: 0s; }
+.cube-cell:nth-child(2) { animation-delay: 0.1s; }
+.cube-cell:nth-child(3) { animation-delay: 0.2s; }
+.cube-cell:nth-child(4) { animation-delay: 0.3s; }
+.cube-cell:nth-child(5) { animation-delay: 0.4s; }
+.cube-cell:nth-child(6) { animation-delay: 0.5s; }
+.cube-cell:nth-child(7) { animation-delay: 0.6s; }
+.cube-cell:nth-child(8) { animation-delay: 0.7s; }
+.cube-cell:nth-child(9) { animation-delay: 0.8s; }
+
+.loader-subtitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  animation: blink 1s step-end infinite;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+#header {
+  height: var(--header-h);
+  background: rgba(9,14,28,0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.logo-wrap {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--grad-primary);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: #000;
+  box-shadow: var(--shadow-glow-cyan);
+  transition: var(--transition);
+}
+.logo-wrap:hover .logo-icon { transform: rotate(15deg) scale(1.1); box-shadow: 0 0 30px rgba(0,245,255,0.5); }
+.logo-text {
+  font-size: 18px; font-weight: 800;
+  letter-spacing: 0.05em;
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-nav {
+  display: flex; gap: 4px;
+  flex: 1;
+}
+.nav-item {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.nav-item:hover, .nav-item.active {
+  color: var(--text-primary);
+  background: var(--glass);
+  border-color: var(--glass-border);
+}
+.nav-item.active { color: var(--cyan); }
+
+.header-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex; align-items: center;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  padding: 3px;
+  gap: 2px;
+}
+.mode-btn {
+  padding: 5px 14px;
+  border-radius: 24px;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-muted);
+}
+.mode-btn.active {
+  background: var(--grad-primary);
+  color: #000;
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.header-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--grad-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.header-avatar:hover { transform: scale(1.1); box-shadow: var(--shadow-glow-purple); }
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+#app {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+#sidebar {
+  width: var(--sidebar-w);
+  background: rgba(9,14,28,0.8);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
+}
+#sidebar.collapsed { width: 0; opacity: 0; }
+
+.sidebar-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: var(--glass-border);
+}
+
+/* Sliders */
+.control-group { margin-bottom: 18px; }
+.control-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.control-label {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  display: flex; align-items: center; gap: 6px;
+}
+.control-label .axis {
+  font-size: 10px; font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(0,245,255,0.1);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+}
+.control-label .axis.y { background: rgba(168,85,247,0.1); color: var(--purple); }
+.control-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+  background: rgba(0,245,255,0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 48px;
+  text-align: center;
+}
+
+.slider-wrap {
+  position: relative;
+  height: 20px;
+  display: flex; align-items: center;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%; height: 4px;
+  border-radius: 10px;
+  background: linear-gradient(to right, var(--cyan) 0%, var(--cyan) var(--pct, 50%), rgba(255,255,255,0.08) var(--pct, 50%));
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+input[type="range"].purple {
+  background: linear-gradient(to right, var(--purple) 0%, var(--purple) var(--pct, 50%), rgba(255,255,255,0.08) var(--pct, 50%));
+}
+input[type="range"].pink {
+  background: linear-gradient(to right, var(--pink) 0%, var(--pink) var(--pct, 50%), rgba(255,255,255,0.08) var(--pct, 50%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0,245,255,0.6);
+  cursor: pointer;
+  transition: var(--transition);
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+input[type="range"].purple::-webkit-slider-thumb { box-shadow: 0 0 10px rgba(168,85,247,0.6); }
+input[type="range"].pink::-webkit-slider-thumb { box-shadow: 0 0 10px rgba(236,72,153,0.6); }
+
+/* Reflection & Shear toggles */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0;
+}
+.toggle-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.toggle-switch {
+  width: 36px; height: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+  border: 1px solid var(--glass-border);
+}
+.toggle-switch.on { background: var(--cyan); box-shadow: 0 0 12px rgba(0,245,255,0.4); }
+.toggle-knob {
+  position: absolute;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: var(--transition);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+.toggle-switch.on .toggle-knob { left: 18px; }
+
+/* Action Buttons */
+.btn-group {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px;
+}
+.btn {
+  border: none; outline: none; cursor: pointer;
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 16px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.3s ease;
+}
+.btn:hover::after { background: rgba(255,255,255,0.06); }
+.btn:active { transform: scale(0.97); }
+
+/* Apply button — 3D rotating gradient */
+.btn-apply {
+  background: var(--grad-primary);
+  color: #050d1a;
+  box-shadow: 0 4px 20px rgba(0,245,255,0.3);
+}
+.btn-apply::before {
+  content: '';
+  position: absolute; inset: -2px;
+  background: conic-gradient(from 0deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
+  border-radius: var(--radius-md);
+  z-index: -1;
+  animation: border-rotate 3s linear infinite;
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-apply:hover::before { opacity: 1; }
+.btn-apply:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,245,255,0.5); }
+
+/* Reset button */
+.btn-reset {
+  background: rgba(236,72,153,0.12);
+  color: var(--pink);
+  border: 1px solid rgba(236,72,153,0.25);
+}
+.btn-reset::before {
+  content: '';
+  position: absolute; inset: -2px;
+  background: conic-gradient(from 0deg, var(--pink), var(--purple), var(--pink));
+  border-radius: var(--radius-md);
+  z-index: -1;
+  animation: border-rotate 2s linear infinite;
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-reset:hover::before { opacity: 0.7; }
+.btn-reset:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(236,72,153,0.3); }
+
+.btn-row { display: flex; gap: 8px; }
+.btn-undo, .btn-redo {
+  flex: 1;
+  background: var(--glass);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+}
+.btn-undo:hover { color: var(--cyan); border-color: rgba(0,245,255,0.3); }
+.btn-redo:hover { color: var(--purple); border-color: rgba(168,85,247,0.3); }
+
+/* ============================================================
+   MAIN CANVAS AREA
+   ============================================================ */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.canvas-header {
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(9,14,28,0.5);
+}
+.canvas-tab {
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: var(--transition);
+}
+.canvas-tab.active { color: var(--cyan); background: rgba(0,245,255,0.08); }
+.canvas-divider {
+  width: 1px; height: 14px;
+  background: var(--glass-border);
+}
+.canvas-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(16,185,129,0.1);
+  color: var(--green);
+  border: 1px solid rgba(16,185,129,0.2);
+  margin-left: auto;
+}
+
+.canvas-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
+}
+
+.canvas-pane {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0,245,255,0.03) 0%, transparent 70%);
+}
+.canvas-pane:first-child { border-right: 1px solid var(--glass-border); }
+
+.pane-label {
+  position: absolute;
+  top: 12px; left: 14px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.pane-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pane-dot.cyan { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.pane-dot.purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+
+/* 2D Canvas */
+#canvas2d {
+  width: 100%; height: 100%;
+  display: block;
+}
+
+/* 3D Viewer */
+#viewer3d {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.scene-3d {
+  width: 200px; height: 200px;
+  perspective: 600px;
+  cursor: grab;
+}
+.scene-3d:active { cursor: grabbing; }
+.object-3d {
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  animation: rotate-3d 8s linear infinite;
+  position: relative;
+}
+.face-3d {
+  position: absolute;
+  width: 100px; height: 100px;
+  left: 50px; top: 50px;
+  border: 1px solid rgba(0,245,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.face-3d:nth-child(1) { background: rgba(0,245,255,0.05); transform: translateZ(50px); }
+.face-3d:nth-child(2) { background: rgba(168,85,247,0.05); transform: translateZ(-50px) rotateY(180deg); }
+.face-3d:nth-child(3) { background: rgba(0,245,255,0.03); transform: rotateY(90deg) translateZ(50px); }
+.face-3d:nth-child(4) { background: rgba(168,85,247,0.03); transform: rotateY(-90deg) translateZ(50px); }
+.face-3d:nth-child(5) { background: rgba(236,72,153,0.05); transform: rotateX(90deg) translateZ(50px); }
+.face-3d:nth-child(6) { background: rgba(236,72,153,0.03); transform: rotateX(-90deg) translateZ(50px); }
+
+.face-inner { font-family: var(--font-mono); font-size: 9px; color: rgba(0,245,255,0.4); }
+
+.grid-overlay {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 30px 30px;
+  pointer-events: none;
+}
+.grid-overlay.colored {
+  background-image:
+    linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
+}
+
+.axis-lines {
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+
+/* Floating toolbar in canvas */
+.canvas-toolbar {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 6px;
+  background: rgba(9,14,28,0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  padding: 6px 10px;
+}
+.tool-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none; outline: none;
+  background: var(--glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+  position: relative;
+}
+.tool-btn:hover {
+  background: rgba(0,245,255,0.12);
+  color: var(--cyan);
+  transform: scale(1.15);
+}
+.tool-btn.active { background: rgba(0,245,255,0.15); color: var(--cyan); }
+
+/* ============================================================
+   INFO PANEL (RIGHT)
+   ============================================================ */
+#info-panel {
+  width: var(--info-w);
+  background: rgba(9,14,28,0.8);
+  backdrop-filter: blur(24px);
+  border-left: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
+}
+
+.info-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Matrix display */
+.matrix-wrap {
+  background: rgba(0,245,255,0.03);
+  border: 1px solid rgba(0,245,255,0.1);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  position: relative;
+}
+.matrix-bracket {
+  position: absolute;
+  top: 8px; bottom: 8px;
+  width: 3px;
+  border: 1px solid rgba(0,245,255,0.3);
+}
+.matrix-bracket.left { left: 6px; border-right: none; }
+.matrix-bracket.right { right: 6px; border-left: none; }
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 10px;
+}
+.matrix-cell {
+  text-align: center;
+  color: var(--cyan);
+  padding: 4px;
+  border-radius: 4px;
+  background: rgba(0,245,255,0.05);
+  transition: var(--transition);
+}
+.matrix-cell.highlight { color: var(--pink); background: rgba(236,72,153,0.08); }
+.matrix-cell.identity { color: var(--text-muted); }
+
+/* Current values */
+.values-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.value-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  transition: var(--transition);
+  cursor: default;
+}
+.value-card:hover {
+  border-color: rgba(0,245,255,0.25);
+  background: var(--glass-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,245,255,0.08);
+}
+.value-name { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.08em; }
+.value-num {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.value-unit { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
+
+/* History */
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.history-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.history-item.translate::before { background: var(--cyan); }
+.history-item.rotate::before { background: var(--purple); }
+.history-item.scale::before { background: var(--green); }
+.history-item.reflect::before { background: var(--pink); }
+.history-item:hover { border-color: rgba(255,255,255,0.12); background: var(--glass-hover); }
+
+.hist-icon { font-size: 13px; }
+.hist-info { flex: 1; }
+.hist-op { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.hist-val { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.hist-time { font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+#footer {
+  height: var(--footer-h);
+  background: rgba(6,10,22,0.95);
+  border-top: 1px solid var(--glass-border);
+  display: flex; align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.footer-item {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  display: flex; align-items: center; gap: 6px;
+}
+.footer-sep { width: 1px; height: 12px; background: var(--glass-border); }
+.footer-credit {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.footer-credit span {
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--sidebar-w) - 1px);
+  transform: translateY(-50%);
+  width: 18px; height: 48px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text-muted);
+  z-index: 10;
+  transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+}
+.sidebar-toggle:hover { color: var(--cyan); }
+#sidebar.collapsed ~ .sidebar-toggle { left: -1px; }
+
+/* Tooltip */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(9,14,28,0.95);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.tooltip-wrap:hover .tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes cube-spin {
+  0% { transform: rotateX(-20deg) rotateY(0deg); }
+  100% { transform: rotateX(-20deg) rotateY(360deg); }
+}
+@keyframes cell-pulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.9; }
+}
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes rotate-3d {
+  0% { transform: rotateX(10deg) rotateY(0deg); }
+  100% { transform: rotateX(10deg) rotateY(360deg); }
+}
+@keyframes border-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+  50% { opacity: 0.6; box-shadow: 0 0 4px var(--green); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes hue-rotate {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+
+/* App entrance */
+#header { animation: fade-in-up 0.5s ease 0.1s both; }
+#sidebar { animation: fade-in-up 0.5s ease 0.2s both; }
+#main { animation: fade-in-up 0.5s ease 0.3s both; }
+#info-panel { animation: fade-in-up 0.5s ease 0.4s both; }
+
+/* Neon glow card hover */
+.glass-card {
+  transition: var(--transition);
+}
+.glass-card:hover {
+  box-shadow: 0 0 0 1px rgba(0,245,255,0.2), 0 8px 32px rgba(0,245,255,0.08);
+  transform: translateY(-2px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+/* ============================================================
+   CANVAS AXIS / OBJECTS
+   ============================================================ */
+.transform-indicator {
+  position: absolute;
+  top: 12px; right: 14px;
+  display: flex; gap: 6px;
+}
+.ind-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+.ind-badge.t { color: var(--cyan); border-color: rgba(0,245,255,0.3); background: rgba(0,245,255,0.06); }
+.ind-badge.r { color: var(--purple); border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.06); }
+.ind-badge.s { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.06); }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-title">TRANSFORMX</div>
+  <div class="cube-scene">
+    <div class="cube">
+      <div class="cube-face"><div class="cube-grid">
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+      </div></div>
+      <div class="cube-face"><div class="cube-grid">
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+        <div class="cube-cell"></div><div class="cube-cell"></div><div class="cube-cell"></div>
+      </div></div>
+      <div class="cube-face"></div>
+      <div class="cube-face"></div>
+      <div class="cube-face"></div>
+      <div class="cube-face"></div>
+    </div>
+  </div>
+  <div class="loader-subtitle">INITIALIZING_ENGINE...</div>
+</div>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="logo-wrap">
+    <div class="logo-icon">TX</div>
+    <div class="logo-text">TransformX</div>
+  </div>
+
+  <nav class="header-nav">
+    <div class="nav-item active">Studio</div>
+    <div class="nav-item">Presets</div>
+    <div class="nav-item">Export</div>
+    <div class="nav-item">Docs</div>
+  </nav>
+
+  <div class="header-right">
+    <div class="mode-toggle">
+      <div class="mode-btn active" id="mode2d">2D</div>
+      <div class="mode-btn" id="mode3d">3D</div>
+    </div>
+    <div class="status-dot" title="Engine Active"></div>
+    <div class="header-avatar">U</div>
+  </div>
+</header>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+
+    <!-- Translate -->
+    <div class="sidebar-section">
+      <div class="section-label">Translate</div>
+      <div class="control-group">
+        <div class="control-header">
+          <div class="control-label"><span class="axis">X</span> Horizontal</div>
+          <div class="control-value" id="valTX">0 px</div>
+        </div>
+        <input type="range" id="sliderTX" min="-200" max="200" value="0" class="">
+      </div>
+      <div class="control-group">
+        <div class="control-header">
+          <div class="control-label"><span class="axis y">Y</span> Vertical</div>
+          <div class="control-value" id="valTY">0 px</div>
+        </div>
+        <input type="range" id="sliderTY" min="-200" max="200" value="0" class="purple">
+      </div>
+    </div>
+
+    <!-- Rotate -->
+    <div class="sidebar-section">
+      <div class="section-label">Rotate</div>
+      <div class="control-group">
+        <div class="control-header">
+          <div class="control-label">Angle</div>
+          <div class="control-value" id="valRot">0°</div>
+        </div>
+        <input type="range" id="sliderRot" min="-180" max="180" value="0" class="purple">
+      </div>
+    </div>
+
+    <!-- Scale -->
+    <div class="sidebar-section">
+      <div class="section-label">Scale</div>
+      <div class="control-group">
+        <div class="control-header">
+          <div class="control-label"><span class="axis">X</span> Horizontal</div>
+          <div class="control-value" id="valSX">1.0×</div>
+        </div>
+        <input type="range" id="sliderSX" min="10" max="300" value="100" class="">
+      </div>
+      <div class="control-group">
+        <div class="control-header">
+          <div class="control-label"><span class="axis y">Y</span> Vertical</div>
+          <div class="control-value" id="valSY">1.0×</div>
+        </div>
+        <input type="range" id="sliderSY" min="10" max="300" value="100" class="purple">
+      </div>
+    </div>
+
+    <!-- Reflection & Shear -->
+    <div class="sidebar-section">
+      <div class="section-label">Reflection & Shear</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Reflect X-axis</span>
+        <div class="toggle-switch" id="togRefX"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Reflect Y-axis</span>
+        <div class="toggle-switch" id="togRefY"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="control-group" style="margin-top:12px">
+        <div class="control-header">
+          <div class="control-label">Shear X</div>
+          <div class="control-value" id="valShX">0.0</div>
+        </div>
+        <input type="range" id="sliderShX" min="-100" max="100" value="0" class="pink">
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-group">
+      <button class="btn btn-apply" id="btnApply">
+        <span>⚡</span> Apply Transform
+      </button>
+      <button class="btn btn-reset" id="btnReset">
+        <span>↺</span> Reset All
+      </button>
+      <div class="btn-row">
+        <button class="btn btn-undo" id="btnUndo">← Undo</button>
+        <button class="btn btn-redo" id="btnRedo">Redo →</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN CANVAS -->
+  <main id="main">
+    <div class="canvas-header">
+      <div class="canvas-tab active">Canvas</div>
+      <div class="canvas-divider"></div>
+      <div class="canvas-tab">Before</div>
+      <div class="canvas-tab">After</div>
+      <div class="canvas-badge">● LIVE</div>
+    </div>
+
+    <div class="canvas-split">
+      <!-- 2D Pane -->
+      <div class="canvas-pane">
+        <div class="grid-overlay colored"></div>
+        <div class="pane-label">
+          <div class="pane-dot cyan"></div>
+          2D Canvas
+        </div>
+        <div class="transform-indicator">
+          <div class="ind-badge t" id="indT">T: 0,0</div>
+          <div class="ind-badge r" id="indR">R: 0°</div>
+          <div class="ind-badge s" id="indS">S: 1×</div>
+        </div>
+        <canvas id="canvas2d"></canvas>
+        <div class="canvas-toolbar">
+          <div class="tooltip-wrap">
+            <button class="tool-btn active">✥</button>
+            <div class="tooltip">Move Tool</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⟳</button>
+            <div class="tooltip">Rotate Tool</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⤡</button>
+            <div class="tooltip">Scale Tool</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">◫</button>
+            <div class="tooltip">Bounding Box</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⊕</button>
+            <div class="tooltip">Zoom In</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⊖</button>
+            <div class="tooltip">Zoom Out</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Pane -->
+      <div class="canvas-pane">
+        <div class="grid-overlay"></div>
+        <div class="pane-label">
+          <div class="pane-dot purple"></div>
+          3D Viewer
+        </div>
+        <div id="viewer3d">
+          <div class="scene-3d" id="scene3d">
+            <div class="object-3d" id="obj3d">
+              <div class="face-3d"><div class="face-inner">XZ</div></div>
+              <div class="face-3d"><div class="face-inner">XZ</div></div>
+              <div class="face-3d"><div class="face-inner">YZ</div></div>
+              <div class="face-3d"><div class="face-inner">YZ</div></div>
+              <div class="face-3d"><div class="face-inner">XY</div></div>
+              <div class="face-3d"><div class="face-inner">XY</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="canvas-toolbar" style="gap:8px">
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⟳</button>
+            <div class="tooltip">Auto Rotate</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">⊕</button>
+            <div class="tooltip">Perspective</div>
+          </div>
+          <div class="tooltip-wrap">
+            <button class="tool-btn">▦</button>
+            <div class="tooltip">Wireframe</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- INFO PANEL -->
+  <aside id="info-panel">
+
+    <!-- Matrix -->
+    <div class="info-section">
+      <div class="section-label">Transform Matrix</div>
+      <div class="matrix-wrap glass-card">
+        <div class="matrix-bracket left"></div>
+        <div class="matrix-bracket right"></div>
+        <div class="matrix-grid" id="matrixGrid">
+          <div class="matrix-cell" id="m00">1.00</div>
+          <div class="matrix-cell" id="m01">0.00</div>
+          <div class="matrix-cell" id="m02">0.00</div>
+          <div class="matrix-cell" id="m10">0.00</div>
+          <div class="matrix-cell" id="m11">1.00</div>
+          <div class="matrix-cell" id="m12">0.00</div>
+          <div class="matrix-cell" id="m20">0.00</div>
+          <div class="matrix-cell" id="m21">0.00</div>
+          <div class="matrix-cell" id="m22">1.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Values -->
+    <div class="info-section">
+      <div class="section-label">Current Values</div>
+      <div class="values-grid">
+        <div class="value-card glass-card">
+          <div class="value-name">TRANSLATE X</div>
+          <div><span class="value-num" id="infoTX">0</span><span class="value-unit">px</span></div>
+        </div>
+        <div class="value-card glass-card">
+          <div class="value-name">TRANSLATE Y</div>
+          <div><span class="value-num" id="infoTY">0</span><span class="value-unit">px</span></div>
+        </div>
+        <div class="value-card glass-card">
+          <div class="value-name">ROTATION</div>
+          <div><span class="value-num" id="infoRot">0</span><span class="value-unit">°</span></div>
+        </div>
+        <div class="value-card glass-card">
+          <div class="value-name">SCALE X</div>
+          <div><span class="value-num" id="infoSX">1.0</span><span class="value-unit">×</span></div>
+        </div>
+        <div class="value-card glass-card">
+          <div class="value-name">SCALE Y</div>
+          <div><span class="value-num" id="infoSY">1.0</span><span class="value-unit">×</span></div>
+        </div>
+        <div class="value-card glass-card">
+          <div class="value-name">SHEAR X</div>
+          <div><span class="value-num" id="infoShX">0.0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="info-section">
+      <div class="section-label">History</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="footer-item">⬡ TransformX</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">v2.4.1</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">WebGL 2.0</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item" id="fps">60 fps</div>
+  <div class="footer-credit">Crafted with <span>✦ precision</span></div>
+</footer>
+
+<script type="module">
+import TransformXAPI from './src/core/TransformXAPI.js';
+
+// Initialize API
+const api = new TransformXAPI();
+api.init('2D');
+console.log('✓ TransformX API initialized');
+
+// UI State - mirrors what's on the sliders
+let state = {
+  tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, shx: 0,
+  refX: false, refY: false
+};
+
+setTimeout(() => {
+  document.getElementById('loader').classList.add('hidden');
+}, 2000);
+
+// Canvas setup
+const canvas2d = document.getElementById('canvas2d');
+const ctx = canvas2d.getContext('2d');
+
+function resizeCanvas() {
+  const pane = canvas2d.parentElement;
+  canvas2d.width = pane.clientWidth;
+  canvas2d.height = pane.clientHeight;
+  render();
+}
+
+// MAIN RENDER FUNCTION - draws based on LOCAL state
+function render() {
+  const W = canvas2d.width, H = canvas2d.height;
+  const cx = W / 2, cy = H / 2;
+
+  // Background
+  ctx.fillStyle = 'rgba(6,10,22,1)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,245,255,0.1)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < W; i += 30) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, H);
+    ctx.stroke();
+  }
+  for (let i = 0; i < H; i += 30) {
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(W, i);
+    ctx.stroke();
+  }
+
+  // Axis
+  ctx.strokeStyle = 'rgba(0,245,255,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, 0);
+  ctx.lineTo(cx, H);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, cy);
+  ctx.lineTo(W, cy);
+  ctx.stroke();
+
+  // Apply transformations to canvas
+  ctx.save();
+  ctx.translate(cx + state.tx, cy + state.ty);
+
+  // Create transformation matrix
+  const rad = state.rot * Math.PI / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  let a = cos * state.sx;
+  let b = -sin * state.sy;
+  let c = sin * state.sx;
+  let d = cos * state.sy;
+
+  // Apply reflections
+  if (state.refX) { c = -c; d = -d; }
+  if (state.refY) { a = -a; b = -b; }
+
+  // Apply transform
+  ctx.transform(a, c, b, d, 0, 0);
+
+  // Draw square with gradient
+  const gradient = ctx.createLinearGradient(-50, -50, 50, 50);
+  gradient.addColorStop(0, 'rgba(0,245,255,0.8)');
+  gradient.addColorStop(1, 'rgba(168,85,247,0.8)');
+
+  ctx.shadowColor = 'rgba(0,245,255,0.6)';
+  ctx.shadowBlur = 15;
+  ctx.strokeStyle = gradient;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-50, -50, 100, 100);
+
+  ctx.fillStyle = 'rgba(0,245,255,0.1)';
+  ctx.fillRect(-50, -50, 100, 100);
+
+  ctx.restore();
+
+  // Origin dot
+  ctx.fillStyle = 'rgba(236,72,153,0.9)';
+  ctx.shadowColor = 'rgba(236,72,153,0.9)';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  updateDisplay();
+}
+
+// Update all display elements
+function updateDisplay() {
+  // Update slider value displays
+  document.getElementById('valTX').textContent = state.tx;
+  document.getElementById('valTY').textContent = state.ty;
+  document.getElementById('valRot').textContent = state.rot + '°';
+  document.getElementById('valSX').textContent = state.sx.toFixed(2);
+  document.getElementById('valSY').textContent = state.sy.toFixed(2);
+  document.getElementById('valShX').textContent = state.shx.toFixed(2);
+
+  // Update info panel values
+  document.getElementById('infoTX').textContent = state.tx;
+  document.getElementById('infoTY').textContent = state.ty;
+  document.getElementById('infoRot').textContent = state.rot;
+  document.getElementById('infoSX').textContent = state.sx.toFixed(2);
+  document.getElementById('infoSY').textContent = state.sy.toFixed(2);
+  document.getElementById('infoShX').textContent = state.shx.toFixed(2);
+
+  // Update indicators
+  document.getElementById('indT').textContent = `T: ${state.tx},${state.ty}`;
+  document.getElementById('indR').textContent = `R: ${state.rot}°`;
+  document.getElementById('indS').textContent = `S: ${state.sx.toFixed(1)}×`;
+
+  // Update matrix display (pure geometry, not from API)
+  const rad = state.rot * Math.PI / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const m00 = state.sx * cos;
+  const m01 = -state.sy * sin;
+  const m02 = state.tx / 100;
+  const m10 = state.sx * sin;
+  const m11 = state.sy * cos;
+  const m12 = state.ty / 100;
+  const m20 = 0;
+  const m21 = 0;
+  const m22 = 1;
+
+  document.getElementById('m00').textContent = m00.toFixed(2);
+  document.getElementById('m01').textContent = m01.toFixed(2);
+  document.getElementById('m02').textContent = m02.toFixed(2);
+  document.getElementById('m10').textContent = m10.toFixed(2);
+  document.getElementById('m11').textContent = m11.toFixed(2);
+  document.getElementById('m12').textContent = m12.toFixed(2);
+  document.getElementById('m20').textContent = m20.toFixed(2);
+  document.getElementById('m21').textContent = m21.toFixed(2);
+  document.getElementById('m22').textContent = m22.toFixed(2);
+}
+
+// SLIDER HANDLERS - update state and render immediately
+document.getElementById('sliderTX').addEventListener('input', (e) => {
+  state.tx = parseInt(e.target.value);
+  render();
+});
+
+document.getElementById('sliderTY').addEventListener('input', (e) => {
+  state.ty = parseInt(e.target.value);
+  render();
+});
+
+document.getElementById('sliderRot').addEventListener('input', (e) => {
+  state.rot = parseInt(e.target.value);
+  render();
+});
+
+document.getElementById('sliderSX').addEventListener('input', (e) => {
+  state.sx = parseInt(e.target.value) / 100;
+  render();
+});
+
+document.getElementById('sliderSY').addEventListener('input', (e) => {
+  state.sy = parseInt(e.target.value) / 100;
+  render();
+});
+
+document.getElementById('sliderShX').addEventListener('input', (e) => {
+  state.shx = parseInt(e.target.value) / 100;
+  render();
+});
+
+// TOGGLE HANDLERS - update state and render
+document.getElementById('togRefX').addEventListener('click', function() {
+  state.refX = !state.refX;
+  this.classList.toggle('on', state.refX);
+  render();
+});
+
+document.getElementById('togRefY').addEventListener('click', function() {
+  state.refY = !state.refY;
+  this.classList.toggle('on', state.refY);
+  render();
+});
+
+// BUTTON HANDLERS
+document.getElementById('btnApply').addEventListener('click', () => {
+  console.log('✓ Transform applied:', state);
+  addToHistory();
+  // Send to API for recording
+  api.translate2D(state.tx, state.ty)
+    .rotate2D(state.rot)
+    .scale2D(state.sx, state.sy);
+  if (state.refX) api.reflect2D('x');
+  if (state.refY) api.reflect2D('y');
+  api.shear2D(state.shx);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  // Reset all state
+  state.tx = 0;
+  state.ty = 0;
+  state.rot = 0;
+  state.sx = 1;
+  state.sy = 1;
+  state.shx = 0;
+  state.refX = false;
+  state.refY = false;
+
+  // Reset sliders
+  document.getElementById('sliderTX').value = 0;
+  document.getElementById('sliderTY').value = 0;
+  document.getElementById('sliderRot').value = 0;
+  document.getElementById('sliderSX').value = 100;
+  document.getElementById('sliderSY').value = 100;
+  document.getElementById('sliderShX').value = 0;
+
+  // Reset toggles
+  document.getElementById('togRefX').classList.remove('on');
+  document.getElementById('togRefY').classList.remove('on');
+
+  // Reset API
+  api.reset();
+  
+  console.log('✓ All transforms reset');
+  render();
+});
+
+document.getElementById('btnUndo').addEventListener('click', () => {
+  console.log('↶ Undo triggered');
+  api.undo();
+  render();
+});
+
+document.getElementById('btnRedo').addEventListener('click', () => {
+  console.log('↷ Redo triggered');
+  api.redo();
+  render();
+});
+
+function addToHistory() {
+  const list = document.getElementById('historyList');
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.innerHTML = `
+    <div class="hist-icon">⬡</div>
+    <div class="hist-info">
+      <div class="hist-op">Transform</div>
+      <div class="hist-val">T(${state.tx},${state.ty}) R(${state.rot}°)</div>
+    </div>
+  `;
+  list.insertBefore(item, list.firstChild);
+  if (list.children.length > 10) list.removeChild(list.lastChild);
+}
+
+// MODE TOGGLE
+let currentMode = '2D';
+
+document.getElementById('mode2d').addEventListener('click', function() {
+  if (currentMode !== '2D') {
+    currentMode = '2D';
+    api.use2D();
+    this.classList.add('active');
+    document.getElementById('mode3d').classList.remove('active');
+    console.log('→ Switched to 2D mode');
+    render();
+  }
+});
+
+document.getElementById('mode3d').addEventListener('click', function() {
+  if (currentMode !== '3D') {
+    currentMode = '3D';
+    api.use3D();
+    this.classList.add('active');
+    document.getElementById('mode2d').classList.remove('active');
+    console.log('→ Switched to 3D mode');
+    render();
+  }
+});
+
+// INITIALIZE
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// FPS Counter
+let frameCount = 0, lastTime = performance.now();
+function fpsLoop() {
+  frameCount++;
+  const now = performance.now();
+  if (now - lastTime > 1000) {
+    document.getElementById('fps').textContent = frameCount + ' fps';
+    frameCount = 0;
+    lastTime = now;
+  }
+  requestAnimationFrame(fpsLoop);
+}
+fpsLoop();
+
+console.log('✓ TransformX UI loaded and ready');
+</script>
+</body>
+</html>

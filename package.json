@@ -1,0 +1,46 @@
+{
+  "name": "transformx-core",
+  "version": "1.0.0",
+  "description": "TransformX: Interactive 2D & 3D Transformation Visualizer - Core Engine",
+  "type": "module",
+  "main": "src/core/TransformXAPI.js",
+  "exports": {
+    ".": "./src/core/TransformXAPI.js",
+    "./core": "./src/core/TransformXCore.js",
+    "./2d": "./src/2d/Transform2D.js",
+    "./3d": "./src/3d/Transform3D.js",
+    "./matrix": "./src/utils/matrix.js",
+    "./helpers": "./src/utils/helpers.js",
+    "./config": "./src/core/config.js",
+    "./animation": "./src/core/AnimationManager.js",
+    "./history": "./src/core/HistoryManager.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "echo \"Development server would start here\"",
+    "build": "echo \"Build process would run here\""
+  },
+  "keywords": [
+    "geometry",
+    "transformation",
+    "2d",
+    "3d",
+    "matrix",
+    "animation",
+    "visualization",
+    "graphics",
+    "mathematics",
+    "computational-geometry"
+  ],
+  "author": "TransformX Development Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transformx/core.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
